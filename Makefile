@@ -2,7 +2,7 @@ TESTS = test_common
 
 TEST_DATA = s Tai
 
-CFLAGS = -O0 -Wall -Werror -g
+CFLAGS = -O0 -Wall -g
 
 # Control the build verbosity
 ifeq ("$(VERBOSE)","1")
@@ -74,6 +74,13 @@ plot: $(TESTS)
 		./test_common --bench REF $(TEST_DATA)\
 		| grep 'ternary_tree, loaded 206849 words'\
 		| grep -Eo '[0-9]+\.[0-9]+' > ref_data.csv
+
+analyze:
+	./drop_caches.sh
+	make clean
+	make
+	./tst_bloom_analyzer.sh
+	@sudo chmod ugo+w results.txt
 
 clean:
 	$(RM) $(TESTS) $(OBJS)
