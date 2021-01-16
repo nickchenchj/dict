@@ -75,12 +75,27 @@ plot: $(TESTS)
 		| grep 'ternary_tree, loaded 206849 words'\
 		| grep -Eo '[0-9]+\.[0-9]+' > ref_data.csv
 
+perf:
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches;
+	sudo perf stat --repeat 100 \
+                -e cache-misses,cache-references,instructions,cycles,minor-faults \
+                ./test_common REF cities.txt
+
+record:
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches;
+	sudo perf record -g \
+				-e cache-misses,cache-references,instructions,cycles,minor-faults \
+				./test_common REF cities.txt
+	sudo perf report
+
 analyze:
-	./drop_caches.sh
-	make clean
-	make
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches;
 	./tst_bloom_analyzer.sh
 	@sudo chmod ugo+w results.txt
+
+valgrind:
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches;
+	valgrind --tool=massif ./test_common REF cities.txt
 
 clean:
 	$(RM) $(TESTS) $(OBJS)
