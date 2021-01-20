@@ -2,7 +2,7 @@ TESTS = test_common
 
 TEST_DATA = s Tai
 
-CFLAGS = -O0 -Wall -Werror -g
+CFLAGS = -O0 -Wall -g
 
 # Control the build verbosity
 ifeq ("$(VERBOSE)","1")
@@ -24,7 +24,7 @@ $(GIT_HOOKS):
 	@echo
 
 OBJS_LIB = \
-    tst.o bloom.o
+    tst.o bloom.o xorfilter.o
 
 OBJS := \
     $(OBJS_LIB) \
@@ -74,6 +74,28 @@ plot: $(TESTS)
 		./test_common --bench REF $(TEST_DATA)\
 		| grep 'ternary_tree, loaded 206849 words'\
 		| grep -Eo '[0-9]+\.[0-9]+' > ref_data.csv
+
+perf:
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches;
+	sudo perf stat --repeat 100 \
+                -e cache-misses,cache-references,instructions,cycles,minor-faults \
+                ./test_common REF
+
+record:
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches;
+	sudo perf record -g \
+				-e cache-misses,cache-references,instructions,cycles,minor-faults \
+				./test_common REF
+	sudo perf report
+
+analyze:
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches;
+	./tst_bloom_analyzer.sh
+	@sudo chmod ugo+w results.txt
+
+valgrind:
+	sync; echo 3 | sudo tee /proc/sys/vm/drop_caches;
+	valgrind --tool=massif ./test_common REF cities.txt
 
 clean:
 	$(RM) $(TESTS) $(OBJS)
